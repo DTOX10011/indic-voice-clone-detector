@@ -1,0 +1,22 @@
+# Audio and datasets are downloaded by the notebook, never committed
+data/
+hf_tmp/
+*.wav
+*.flac
+*.m4a
+*.ogg
+*.parquet
+*.zip
+
+# Model weights
+*.pth
+*.pt
+*.ckpt
+
+# Secrets
+.env
+
+# Python and notebooks
+__pycache__/
+*.pyc
+.ipynb_checkpoints/

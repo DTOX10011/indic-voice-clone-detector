@@ -1,0 +1,10 @@
+# All of these are already installed on Google Colab.
+huggingface_hub
+numpy
+pandas
+pyarrow
+scikit-learn
+scipy
+soundfile
+torch
+tqdm
