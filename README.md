@@ -1,6 +1,6 @@
 # Detecting Voice Clones in Indian-Language Phone Calls and Voice Notes
 
-**Status: work in progress.** Phases 1 and 2 of 5 are done (last updated 6 October 2026). Hindi only so far; Telugu and Tamil come later.
+**Status: work in progress.** Phases 1 and 2 of 5 are done and Phase 3 is under way (last updated 7 October 2026). Hindi only so far; Telugu and Tamil come later.
 
 Voice-clone scams reach people through phone calls and WhatsApp voice notes, where audio is compressed and noisy. Most fake-voice detectors are built and tested on clean English or Chinese recordings. This project measures how an existing detector holds up on Indian-language audio under phone-style conditions, then trains one that copes better.
 
@@ -22,6 +22,25 @@ Using the detector's own real/fake decision on the Hindi test set:
 - 19.7% of `xtts_v2` fakes were passed as real.
 
 So a detector that is near-perfect on its home data is worse than a coin flip on Hindi, before any phone compression is added. An EER well above 50% means its scores run the wrong way round: it rates the fakes as more real than the real speech.
+
+### Under voice-note and phone-call compression
+
+Every test clip, real and fake, was encoded the way a voice note or phone call would encode it, decoded back, and scored again.
+
+| Condition | EER, all fakes | EER, `freevc24` | EER, `xtts_v2` | Real called fake | `freevc24` passed as real | `xtts_v2` passed as real |
+|---|---|---|---|---|---|---|
+| Clean | 73.4% | 89.7% | 55.8% | 90.2% | 88.2% | 19.7% |
+| Voice note, Opus 24 kbps | 66.5% | 83.8% | 45.8% | 85.2% | 81.7% | 13.4% |
+| Voice note, Opus 12 kbps | 61.8% | 80.0% | 46.5% | 89.8% | 75.1% | 7.7% |
+| Phone call, 8 kHz G.711 | 70.0% | 85.7% | 47.4% | 97.2% | 73.4% | 7.7% |
+| Phone call, 8 kHz GSM | 55.0% | 68.7% | 32.4% | 97.5% | 27.5% | 1.4% |
+
+The more the audio is degraded, the more AASIST calls everything fake. On a GSM call it flags 97.5% of real speakers as fake, and its overall error rate stays between 55% and 73% in every condition. This fits the idea that it reacts to recording quality more than to whether a voice is cloned, but it does not prove it.
+
+Two limits on this test:
+
+- **Mobile codec.** Most mobile calls use AMR, which the ffmpeg build on Colab cannot encode. GSM full-rate is used as the nearest available stand-in.
+- **No background noise yet.** These conditions change the codec and bandwidth only.
 
 ### What this does and does not show
 
@@ -57,13 +76,18 @@ No audio is stored in this repository. The notebook downloads it from the origin
 
 ## Run it
 
-Open [`notebooks/01_dataset_and_baseline.ipynb`](notebooks/01_dataset_and_baseline.ipynb) in Google Colab and run the cells in order. You need a free Hugging Face account and must accept the terms on the [Kathbath dataset page](https://huggingface.co/datasets/ai4bharat/Kathbath) first. The run downloads about 20 GB in pieces and deletes each piece after use. The baseline test takes about 10 minutes on a CPU.
+Open the notebooks in Google Colab and run the cells in order:
+
+1. [`notebooks/01_dataset_and_baseline.ipynb`](notebooks/01_dataset_and_baseline.ipynb) builds the dataset, saves it to Google Drive and runs the baseline test.
+2. [`notebooks/02_compression_test.ipynb`](notebooks/02_compression_test.ipynb) restores the dataset from Drive and runs the compression test. Use a GPU runtime.
+
+For the first notebook you need a free Hugging Face account and must accept the terms on the [Kathbath dataset page](https://huggingface.co/datasets/ai4bharat/Kathbath) first. The run downloads about 20 GB in pieces and deletes each piece after use. The baseline test takes about 10 minutes on a CPU.
 
 ## Plan
 
 1. **Set up the data.** Done.
 2. **Measure the baseline on clean audio.** Done.
-3. **Simulate the real world.** Re-encode the test clips like voice notes (low-bitrate Opus) and phone calls (8 kHz), add background noise, and score them again.
+3. **Simulate the real world.** Re-encode the test clips like voice notes (low-bitrate Opus) and phone calls (8 kHz) and score them again: done for the baseline detector. Background noise is still to come.
 4. **Fix it.** Retrain a detector with compressed and noisy audio in the training data, and test it on a cloning tool or compression setting it never saw.
 5. **Ship it.** A small web demo, plus Telugu and Tamil.
 
