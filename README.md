@@ -1,6 +1,6 @@
 # Detecting Voice Clones in Indian-Language Phone Calls and Voice Notes
 
-**Status: work in progress.** A first Hindi detector is trained and checked; robustness training and a demo come next (last updated 9 October 2026). Hindi only so far; Telugu and Tamil come later.
+**Status: work in progress.** A first Hindi detector is trained and checked, and its main weakness is found: one unfamiliar text-to-speech system gets past it. Robustness training and a demo come next (last updated 9 October 2026). Hindi only so far; Telugu and Tamil come later.
 
 Voice-clone scams reach people through phone calls and WhatsApp voice notes, where audio is compressed and noisy. Most fake-voice detectors are built and tested on clean English or Chinese recordings. This project measures how an existing detector holds up on Indian-language audio under phone-style conditions, then trains one that copes better.
 
@@ -109,10 +109,32 @@ A score this good needs checking. Every real clip comes from one source (Kathbat
 
 If the detector had learned "phone recording means real", it would have called the clean studio recordings fake. It called 1.7% of them fake.
 
+### Fakes from systems it never saw
+
+Every fake above comes from IndicSynth's two tools. To test fakes from elsewhere, 150 Hindi test-set sentences were spoken by each of two text-to-speech systems the detector never saw: MMS-TTS Hindi (a VITS model, one voice) and SeamlessM4T v2 (10 of its voices). These are stock voices, not clones of a particular person. Both were scored against the 325 real test clips, clean and after the same encodings.
+
+EER (lower is better):
+
+| Fakes from | Clean | Opus 24k | Opus 12k | G.711 | GSM |
+|---|---|---|---|---|---|
+| IndicSynth test fakes (tools seen in training) | 0.0% | 0.0% | 0.0% | 0.3% | 0.7% |
+| SeamlessM4T v2 (unseen) | 0.2% | 0.8% | 1.4% | 0.5% | 1.9% |
+| MMS-TTS Hindi (unseen) | 4.0% | 7.4% | 11.4% | 10.4% | 16.3% |
+
+Fakes passed as real at the detector's fixed threshold (lower is better):
+
+| Fakes from | Clean | Opus 24k | Opus 12k | G.711 | GSM |
+|---|---|---|---|---|---|
+| IndicSynth test fakes | 0.0% | 0.0% | 0.0% | 0.0% | 0.0% |
+| SeamlessM4T v2 | 0.0% | 0.7% | 0.0% | 0.7% | 0.0% |
+| MMS-TTS Hindi | 36.7% | 48.7% | 30.0% | 60.7% | 18.0% |
+
+SeamlessM4T is caught almost as well as the training tools. MMS-TTS is the weak spot: the detector still ranks most of its clips as less real than real speech (4% EER on clean audio), but at its working threshold it lets 30% to 61% of them through. Compression makes it worse. MMS-TTS uses one voice and 150 clips, so these numbers describe one system and voice, not text-to-speech in general.
+
 ### What this does and does not show
 
 - **Real-speech side: holds up.** It recognises real Hindi speech from three different recording setups.
-- **Fake side: only partly tested.** Every fake comes from IndicSynth's two tools. Leaving one tool out costs up to 5.9% EER, which suggests some generalisation, but fakes from other systems (commercial cloning services, newer open models) have not been tested yet.
+- **Fake side: mixed.** Leaving one IndicSynth tool out costs up to 5.9% EER, and SeamlessM4T v2 is caught almost perfectly, but MMS-TTS gets past the fixed threshold 30% to 61% of the time. Commercial cloning services have not been tested.
 - **No background noise yet.** The degraded conditions change the codec and bandwidth only.
 - **Small test set.** About 15 test speakers, so small differences between rows are not meaningful.
 
@@ -149,6 +171,7 @@ Open the notebooks in Google Colab and run the cells in order:
 1. [`notebooks/01_dataset_and_baseline.ipynb`](notebooks/01_dataset_and_baseline.ipynb) builds the dataset, saves it to Google Drive and runs the baseline test.
 2. [`notebooks/02_compression_test.ipynb`](notebooks/02_compression_test.ipynb) restores the dataset from Drive and runs the compression test. Use a GPU runtime.
 3. [`notebooks/03_detector_and_shortcut_check.ipynb`](notebooks/03_detector_and_shortcut_check.ipynb) runs end to end with Run all: setup, the compression test, training the Hindi detector, and the shortcut checks. About 25 minutes on a T4 GPU the first time.
+4. [`notebooks/04_outside_fakes.ipynb`](notebooks/04_outside_fakes.ipynb) generates fakes with MMS-TTS and SeamlessM4T v2 and scores them. About 20 minutes on a T4 GPU the first time.
 
 For the first notebook you need a free Hugging Face account and must accept the terms on the [Kathbath dataset page](https://huggingface.co/datasets/ai4bharat/Kathbath) first. The run downloads about 20 GB in pieces and deletes each piece after use. The baseline test takes about 10 minutes on a CPU.
 
@@ -157,7 +180,7 @@ For the first notebook you need a free Hugging Face account and must accept the 
 1. **Set up the data.** Done.
 2. **Measure the baseline on clean audio.** Done.
 3. **Simulate the real world.** Re-encode the test clips like voice notes (low-bitrate Opus) and phone calls (8 kHz) and score them again. Done for codecs; background noise is still to come.
-4. **Fix it.** A detector trained on Hindi is done, including tests on an unseen cloning tool and unseen real-speech sources. Still to do: train with compressed and noisy audio so the threshold holds on phone calls, and test against fakes from outside IndicSynth.
+4. **Fix it.** A detector trained on Hindi is done, including tests on an unseen cloning tool and unseen real-speech sources. Tested against fakes from two outside systems: one is caught, one (MMS-TTS) often gets through. Still to do: train with more varied fakes and with compressed and noisy audio, then re-test on a system kept out of training.
 5. **Ship it.** A small web demo, plus Telugu and Tamil.
 
 ## Data and credits
@@ -168,6 +191,8 @@ For the first notebook you need a free Hugging Face account and must accept the 
 - **XLS-R** (Babu et al., 2021): the pretrained multilingual speech model, `facebook/wav2vec2-xls-r-300m`, Apache 2.0 licence. [Model](https://huggingface.co/facebook/wav2vec2-xls-r-300m)
 - **FLEURS** (Conneau et al., 2022): real Hindi read speech, used only for testing, CC BY 4.0. [Dataset](https://huggingface.co/datasets/google/fleurs)
 - **IndicTTS Hindi** (IIT Madras): studio recordings of real Hindi speech, used only for testing, through [a copy on Hugging Face](https://huggingface.co/datasets/SPRINGLab/IndicTTS-Hindi).
+- **MMS-TTS Hindi** (Pratap et al., 2023): `facebook/mms-tts-hin`, used to generate test fakes, CC BY-NC 4.0. [Model](https://huggingface.co/facebook/mms-tts-hin)
+- **SeamlessM4T v2** (Seamless Communication et al., 2023): `facebook/seamless-m4t-v2-large`, used to generate test fakes, CC BY-NC 4.0. [Model](https://huggingface.co/facebook/seamless-m4t-v2-large)
 - **ASVspoof 2019 LA**: English test set, used only to check the test code, through [a copy on Hugging Face](https://huggingface.co/datasets/Bisher/ASVspoof_2019_LA). [Project site](https://www.asvspoof.org/)
 
 ## Responsible use
