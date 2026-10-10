@@ -12,6 +12,8 @@ hf_tmp/
 *.pth
 *.pt
 *.ckpt
+# ...except the small trained classifier the web demo needs
+!demo/*.pt
 
 # Secrets
 .env

@@ -174,7 +174,7 @@ Open the notebooks in Google Colab and run the cells in order:
 4. [`notebooks/04_outside_fakes.ipynb`](notebooks/04_outside_fakes.ipynb) generates fakes with MMS-TTS and SeamlessM4T v2 and scores them. About 20 minutes on a T4 GPU the first time.
 5. [`notebooks/05_robust_training.ipynb`](notebooks/05_robust_training.ipynb) trains three versions of the detector (clean audio; plus noise and phone audio; plus extra fakes) and compares them. About 45 minutes on a T4 GPU the first time.
 
-The web demo is in [`demo/`](demo/): a Gradio app for Hugging Face Spaces that runs on a free CPU. It needs a trained classifier file (`xlsr_head_clean.pt`, saved to Google Drive by notebook 03) uploaded next to `app.py`.
+The web demo is in [`demo/`](demo/): a Streamlit app that runs on Streamlit Community Cloud's free CPU tier. Upload or record a Hindi clip, including a WhatsApp voice note, and it says whether it sounds real or AI-generated. It needs a trained classifier file (`xlsr_head_clean.pt`, saved to Google Drive by notebook 03) in the `demo` folder. Deployment steps are in [`demo/README.md`](demo/README.md).
 
 For the first notebook you need a free Hugging Face account and must accept the terms on the [Kathbath dataset page](https://huggingface.co/datasets/ai4bharat/Kathbath) first. The run downloads about 20 GB in pieces and deletes each piece after use. The baseline test takes about 10 minutes on a CPU.
 
